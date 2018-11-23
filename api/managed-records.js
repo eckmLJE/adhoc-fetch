@@ -7,14 +7,10 @@ window.path = "http://localhost:3000/records";
 // Your retrieve function plus any additional functions go here ...
 
 const retrieve = (optionsObj = {}) => {
-  console.log("optionsObj: ", optionsObj);
   const pageData = pagination(optionsObj.page);
   const colorData = optionsObj.colors;
   let url = constructURL(pageData, colorData);
-  const transformed = fetchRecords(url).then(json =>
-    transformJson(json, pageData)
-  );
-  return transformed;
+  return fetchRecords(url, pageData);
 };
 
 // Pagination
@@ -34,24 +30,26 @@ const pagination = page => {
 const defaultPageData = () => ({
   previousPage: null,
   nextPage: 2,
-  offset: 0
+  offset: 0,
+  default: true
 });
 
 // Fetch + URL
 
-const fetchRecords = url => {
+const fetchRecords = (url, pageData) => {
   return fetch(url)
     .then(res => {
-      console.log("Response: ", res);
-      return res.json();
+      if (res.ok) {
+        return res.json().then(json => transformJson(json, pageData));
+      }
+      throw Error(res.statusText);
     })
     .catch(console.log);
 };
 
 const constructURL = (pageData, colorData) => {
-  let url = URI("http://localhost:3000/records");
+  let url = URI(window.path);
   const searchOptions = getSearchOptions(pageData, colorData);
-  console.log(searchOptions);
   return url.search(searchOptions);
 };
 
@@ -63,19 +61,21 @@ const getSearchOptions = (pageData, colorData) => {
 
 // Transform Response
 
-const emptyResp = () => ({
+const templateResp = pageData => ({
+  previousPage: pageData.previousPage,
+  nextPage: pageData.nextPage,
   ids: [],
   open: [],
   closedPrimaryCount: 0
 });
 
 const transformJson = (json, pageData) => {
-  console.log("parsed JSON: ", json);
-  const transformed = emptyResp();
-  
+  const transformed = templateResp(pageData);
+  if (pageData.default && !json.length) {
+    transformed.previousPage = null;
+    transformed.nextPage = null;
+  }
   if (json.length) {
-    transformed.previousPage = pageData.previousPage;
-    transformed.nextPage = pageData.nextPage;
     const reduced = reduceOpenItems(json);
     transformed.ids = json.map(el => el.id);
     transformed.open = reduced.open;
