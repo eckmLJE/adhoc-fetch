@@ -8,12 +8,34 @@ window.path = "http://localhost:3000/records";
 
 const retrieve = (optionsObj = {}) => {
   console.log("optionsObj: ", optionsObj);
-  let url = constructURL(optionsObj);
+  const pageData = pagination(optionsObj.page);
+  const colorData = optionsObj.colors;
+  let url = constructURL(pageData, colorData);
   const transformed = fetchRecords(url).then(json =>
     transformJson(json, optionsObj)
   );
   return transformed;
 };
+
+// Pagination
+
+const between = (x, min, max) => x > min && x < max;
+
+const pagination = page => {
+  return page > 1
+    ? {
+        previousPage: between(page, 1, 51) ? page - 1 : 50,
+        nextPage: between(page, 1, 50) ? page + 1 : null,
+        offset: (page - 1) * 10
+      }
+    : defaultPageData();
+};
+
+const defaultPageData = () => ({
+  previousPage: null,
+  nextPage: 2,
+  offset: 0
+});
 
 // Fetch + URL
 
@@ -26,21 +48,14 @@ const fetchRecords = url => {
     .catch(console.log);
 };
 
-const constructURL = optionsObj => {
+const constructURL = (pageData, colorData) => {
   let url = URI("http://localhost:3000/records");
-  const searchOptions = getSearchOptions(url, optionsObj);
+  const searchOptions = {
+    limit: 10,
+    offset: pageData.offset,
+    color: colorData
+  };
   return url.search(searchOptions);
-};
-
-const getSearchOptions = (url, optionsObj) => {
-  const searchOptions = { limit: 10, offset: 0 };
-  if (!!optionsObj.page && !!(optionsObj.page > 1)) {
-    searchOptions.offset = (optionsObj.page - 1) * 10;
-  }
-  if (optionsObj.colors) {
-    searchOptions["color[]"] = optionsObj.colors;
-  }
-  return searchOptions;
 };
 
 // Transform Response
