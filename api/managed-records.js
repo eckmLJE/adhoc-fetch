@@ -34,7 +34,17 @@ const defaultPageData = () => ({
   default: true
 });
 
-// Fetch + URL
+// URL + Fetch
+
+const constructURL = (pageData, colorData) => {
+  let url = URI(window.path);
+  const searchOptions = {
+    limit: 10,
+    offset: pageData.offset,
+    "color[]": colorData
+  };
+  return url.search(searchOptions);
+};
 
 const fetchRecords = (url, pageData) => {
   return fetch(url)
@@ -45,18 +55,6 @@ const fetchRecords = (url, pageData) => {
       throw Error(res.statusText);
     })
     .catch(console.log);
-};
-
-const constructURL = (pageData, colorData) => {
-  let url = URI(window.path);
-  const searchOptions = getSearchOptions(pageData, colorData);
-  return url.search(searchOptions);
-};
-
-const getSearchOptions = (pageData, colorData) => {
-  const searchOptions = { limit: 10, offset: pageData.offset };
-  if (colorData) searchOptions["color[]"] = colorData;
-  return searchOptions;
 };
 
 // Transform Response
