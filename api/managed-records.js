@@ -7,9 +7,8 @@ window.path = "http://localhost:3000/records";
 // Your retrieve function plus any additional functions go here ...
 
 const retrieve = (optionsObj = {}) => {
-  console.log(optionsObj);
+  console.log("optionsObj: ", optionsObj);
   let url = constructURL(optionsObj);
-  console.log(url);
   const transformed = fetchRecords(url).then(json =>
     transformJson(json, optionsObj)
   );
@@ -20,7 +19,10 @@ const retrieve = (optionsObj = {}) => {
 
 const fetchRecords = url => {
   return fetch(url)
-    .then(res => res.json())
+    .then(res => {
+      console.log("Response: ", res);
+      return res.json();
+    })
     .catch(console.log);
 };
 
@@ -36,14 +38,26 @@ const getSearchOptions = (url, optionsObj) => {
     searchOptions.offset = (optionsObj.page - 1) * 10;
   }
   if (optionsObj.colors) {
-    searchOptions.color = optionsObj.colors;
+    searchOptions["color[]"] = optionsObj.colors;
   }
   return searchOptions;
 };
 
 // Transform Response
 
+const emptyResp = () => ({
+  previousPage: null,
+  nextPage: null,
+  ids: [],
+  open: [],
+  closedPrimaryCount: 0
+});
+
 const transformJson = (json, optionsObj) => {
+  console.log("parsed JSON: ", json);
+  if (json.length === 0) {
+    return emptyResp();
+  }
   const ids = json.map(el => el.id);
   const reduced = reduceOpenItems(json);
   const pageData = getPageData(optionsObj);
@@ -80,9 +94,15 @@ const getPageData = optionsObj => {
     previousPage: null,
     nextPage: 2
   };
-  if (optionsObj.page > 1) {
+  if (optionsObj.page > 1 && optionsObj.page < 50) {
     pageData.previousPage = optionsObj.page - 1;
     pageData.nextPage = optionsObj.page + 1;
+  } else if (optionsObj.page === 50) {
+    pageData.previousPage = 49;
+    pageData.nextPage = null;
+  } else if (optionsObj.page > 50) {
+    pageData.previousPage = 50;
+    pageData.nextPage = null;
   }
   return pageData;
 };

@@ -24,3 +24,16 @@ const respArray = [
   Object({ id: 9, color: "brown", disposition: "closed" }),
   Object({ id: 10, color: "red", disposition: "open" })
 ];
+
+const lastPage = [
+  { id: 491, color: "red", disposition: "open" },
+  { id: 492, color: "green", disposition: "closed" },
+  { id: 493, color: "green", disposition: "closed" },
+  { id: 494, color: "green", disposition: "closed" },
+  { id: 495, color: "red", disposition: "closed" },
+  { id: 496, color: "red", disposition: "closed" },
+  { id: 497, color: "yellow", disposition: "closed" },
+  { id: 498, color: "yellow", disposition: "closed" },
+  { id: 499, color: "red", disposition: "closed" },
+  { id: 500, color: "blue", disposition: "closed" }
+];
