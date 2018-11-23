@@ -11,10 +11,7 @@ const retrieve = (optionsObj = {}) => {
   const pageData = pagination(optionsObj.page);
   const colorData = optionsObj.colors;
   let url = constructURL(pageData, colorData);
-  const transformed = fetchRecords(url).then(json =>
-    transformJson(json, optionsObj)
-  );
-  return transformed;
+  return fetchRecords(url).then(json => transformJson(json, pageData));
 };
 
 // Pagination
@@ -40,6 +37,7 @@ const defaultPageData = () => ({
 // Fetch + URL
 
 const fetchRecords = url => {
+  console.log("URL: ", url);
   return fetch(url)
     .then(res => {
       console.log("Response: ", res);
@@ -61,28 +59,23 @@ const constructURL = (pageData, colorData) => {
 // Transform Response
 
 const emptyResp = () => ({
-  previousPage: null,
-  nextPage: null,
   ids: [],
   open: [],
   closedPrimaryCount: 0
 });
 
-const transformJson = (json, optionsObj) => {
+const transformJson = (json, pageData) => {
   console.log("parsed JSON: ", json);
-  if (json.length === 0) {
-    return emptyResp();
+  let transformed = emptyResp();
+  transformed.previousPage = pageData.previousPage;
+  transformed.nextPage = pageData.nextPage;
+  if (json.length) {
+    const reduced = reduceOpenItems(json);
+    transformed.ids = json.map(el => el.id);
+    transformed.open = reduced.open;
+    closedPrimaryCount = reduced.closedPrimaryCount;
   }
-  const ids = json.map(el => el.id);
-  const reduced = reduceOpenItems(json);
-  const pageData = getPageData(optionsObj);
-  return {
-    previousPage: pageData.previousPage,
-    nextPage: pageData.nextPage,
-    ids,
-    open: reduced.open,
-    closedPrimaryCount: reduced.closedPrimaryCount
-  };
+  return transformed;
 };
 
 const reduceOpenItems = json => {
@@ -102,24 +95,6 @@ const reduceOpenItems = json => {
 const checkPrimary = color => {
   const primaryColors = ["red", "blue", "yellow"];
   return primaryColors.includes(color);
-};
-
-const getPageData = optionsObj => {
-  const pageData = {
-    previousPage: null,
-    nextPage: 2
-  };
-  if (optionsObj.page > 1 && optionsObj.page < 50) {
-    pageData.previousPage = optionsObj.page - 1;
-    pageData.nextPage = optionsObj.page + 1;
-  } else if (optionsObj.page === 50) {
-    pageData.previousPage = 49;
-    pageData.nextPage = null;
-  } else if (optionsObj.page > 50) {
-    pageData.previousPage = 50;
-    pageData.nextPage = null;
-  }
-  return pageData;
 };
 
 export default retrieve;
