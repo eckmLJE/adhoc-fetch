@@ -32,6 +32,17 @@ const fetchAndTransform = (url, page = 1) =>
 
 // TRANSFORM
 
+const transformJson = (json, page) => {
+  const transform = templateTransform();
+  if (json.length === 11) transform.nextPage = page + 1;
+  if (page > 1) transform.previousPage = page - 1;
+  if (json.length) {
+    const processedItems = processOpenItems(json.slice(0, 10));
+    Object.assign(transform, processedItems);
+  }
+  return transform;
+};
+
 const templateTransform = () => ({
   previousPage: null,
   nextPage: null,
@@ -39,17 +50,6 @@ const templateTransform = () => ({
   open: [],
   closedPrimaryCount: 0
 });
-
-const transformJson = (json, page) => {
-  const transformed = templateTransform();
-  if (json.length === 11) transformed.nextPage = page + 1;
-  if (page > 1) transformed.previousPage = page - 1;
-  if (json.length) {
-    const processed = processOpenItems(json.slice(0, 10));
-    Object.assign(transformed, processed);
-  }
-  return transformed;
-};
 
 // .reduce() to return ids array, filter open results, add isPrimary
 // key, and count closed primary items. It's a relatively long function,
