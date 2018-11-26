@@ -45,9 +45,8 @@ const transformJson = (json, page) => {
   if (json.length === 11) transformed.nextPage = page + 1;
   if (page > 1) transformed.previousPage = page - 1;
   if (json.length) {
-    const results = json.slice(0, 10);
-    const processed = processOpenItems(results);
-    Object.keys(processed).forEach(key => (transformed[key] = processed[key]));
+    const processed = processOpenItems(json.slice(0, 10));
+    Object.assign(transformed, processed);
   }
   return transformed;
 };
