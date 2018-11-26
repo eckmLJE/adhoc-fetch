@@ -6,16 +6,23 @@ window.path = "http://localhost:3000/records";
 
 // Your retrieve function plus any additional functions go here ...
 
+// RETRIEVE
+
+// First we process the options object argument for page # and colors.
+// Setting a default empty object makes things a little easier for us.
+
 const retrieve = (optionsObj = {}) => {
   const pageData = pagination(optionsObj.page);
   const colorData = optionsObj.colors;
   let url = constructURL(pageData, colorData);
-  return fetchRecords(url, pageData);
+  return fetchAndTransform(url, pageData);
 };
 
-// Pagination
+// PAGINATION
 
-const between = (x, min, max) => x > min && x < max;
+// We assume the API contains a fixed number of records (500).
+// A request without a page specified returns the first page by default.
+// Later, if the response is empty then will set nextPage to null.
 
 const pagination = page => {
   return page > 1
@@ -27,14 +34,15 @@ const pagination = page => {
     : defaultPageData();
 };
 
+const between = (x, min, max) => x > min && x < max;
+
 const defaultPageData = () => ({
   previousPage: null,
   nextPage: 2,
-  offset: 0,
-  default: true
+  offset: 0
 });
 
-// URL + Fetch
+// URL + FETCH
 
 const constructURL = (pageData, colorData) => {
   let url = URI(window.path);
@@ -46,18 +54,32 @@ const constructURL = (pageData, colorData) => {
   return url.search(searchOptions);
 };
 
-const fetchRecords = (url, pageData) => {
+const fetchAndTransform = (url, pageData) => {
   return fetch(url)
     .then(res => {
+      // console.log(res.headers.map);
       if (res.ok) {
         return res.json().then(json => transformJson(json, pageData));
       }
-      throw Error(res.statusText);
+      console.log(res.statusText);
     })
     .catch(console.log);
 };
 
-// Transform Response
+// TRANSFORM
+
+const transformJson = (json, pageData) => {
+  const transformed = templateResp(pageData);
+  if (json.length) {
+    const reduced = reduceOpenItems(json);
+    transformed.ids = json.map(el => el.id);
+    transformed.open = reduced.open;
+    transformed.closedPrimaryCount = reduced.closedPrimaryCount;
+  } else {
+    transformed.nextPage = null;
+  }
+  return transformed;
+};
 
 const templateResp = pageData => ({
   previousPage: pageData.previousPage,
@@ -66,21 +88,6 @@ const templateResp = pageData => ({
   open: [],
   closedPrimaryCount: 0
 });
-
-const transformJson = (json, pageData) => {
-  const transformed = templateResp(pageData);
-  if (pageData.default && !json.length) {
-    transformed.previousPage = null;
-    transformed.nextPage = null;
-  }
-  if (json.length) {
-    const reduced = reduceOpenItems(json);
-    transformed.ids = json.map(el => el.id);
-    transformed.open = reduced.open;
-    transformed.closedPrimaryCount = reduced.closedPrimaryCount;
-  }
-  return transformed;
-};
 
 const reduceOpenItems = json => {
   let closedPrimaryCount = 0;
