@@ -8,58 +8,30 @@ window.path = "http://localhost:3000/records";
 
 // RETRIEVE
 
-// First we process the options object argument for page # and colors.
 // Setting a default empty object makes things a little easier for us.
-
 const retrieve = (optionsObj = {}) => {
-  const pageData = pagination(optionsObj.page);
-  const colorData = optionsObj.colors;
-  let url = constructURL(pageData, colorData);
-  return fetchAndTransform(url, pageData);
+  let url = constructURL(optionsObj);
+  return fetchAndTransform(url, optionsObj.page);
 };
-
-// PAGINATION
-
-// We assume the API contains a fixed number of records (500).
-// A request without a page specified returns the first page by default.
-// Later, if the response is empty then will set nextPage to null.
-
-const pagination = page => {
-  return page > 1
-    ? {
-        previousPage: between(page, 1, 51) ? page - 1 : 50,
-        nextPage: between(page, 1, 50) ? page + 1 : null,
-        offset: (page - 1) * 10
-      }
-    : defaultPageData();
-};
-
-const between = (x, min, max) => x > min && x < max;
-
-const defaultPageData = () => ({
-  previousPage: null,
-  nextPage: 2,
-  offset: 0
-});
 
 // URL + FETCH
 
-const constructURL = (pageData, colorData) => {
+const constructURL = optionsObj => {
   let url = URI(window.path);
   const searchOptions = {
-    limit: 10,
-    offset: pageData.offset,
-    "color[]": colorData
+    limit: 11,
+    offset: optionsObj.page ? (optionsObj.page - 1) * 10 : 0,
+    // url will still construct properly with undefined optionsObj.colors
+    "color[]": optionsObj.colors
   };
   return url.search(searchOptions);
 };
 
-const fetchAndTransform = (url, pageData) => {
+const fetchAndTransform = (url, page = 1) => {
   return fetch(url)
     .then(res => {
-      // console.log(res.headers.map);
       if (res.ok) {
-        return res.json().then(json => transformJson(json, pageData));
+        return res.json().then(json => transformJson(json, page));
       }
       console.log(res.statusText);
     })
@@ -68,22 +40,23 @@ const fetchAndTransform = (url, pageData) => {
 
 // TRANSFORM
 
-const transformJson = (json, pageData) => {
-  const transformed = templateResp(pageData);
+const transformJson = (json, page) => {
+  const transformed = templateTransform();
+  if (json.length === 11) transformed.nextPage = page + 1;
+  if (page > 1) transformed.previousPage = page - 1;
   if (json.length) {
-    const reduced = reduceOpenItems(json);
-    transformed.ids = json.map(el => el.id);
+    const results = json.slice(0, 10);
+    const reduced = reduceOpenItems(results);
+    transformed.ids = results.map(el => el.id);
     transformed.open = reduced.open;
     transformed.closedPrimaryCount = reduced.closedPrimaryCount;
-  } else {
-    transformed.nextPage = null;
   }
   return transformed;
 };
 
-const templateResp = pageData => ({
-  previousPage: pageData.previousPage,
-  nextPage: pageData.nextPage,
+const templateTransform = () => ({
+  previousPage: null,
+  nextPage: null,
   ids: [],
   open: [],
   closedPrimaryCount: 0
