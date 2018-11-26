@@ -8,7 +8,7 @@ window.path = "http://localhost:3000/records";
 
 // RETRIEVE
 
-// Setting a default empty object makes things a little easier for us.
+// Setting a default empty object makes things a little easier for us
 const retrieve = (optionsObj = {}) => {
   let url = constructURL(optionsObj);
   return fetchAndTransform(url, optionsObj.page);
@@ -16,6 +16,7 @@ const retrieve = (optionsObj = {}) => {
 
 // URL + FETCH
 
+// Request 11 items to check later for nextPage
 const constructURL = optionsObj => {
   let url = URI(window.path);
   const searchOptions = {
@@ -27,16 +28,12 @@ const constructURL = optionsObj => {
   return url.search(searchOptions);
 };
 
-const fetchAndTransform = (url, page = 1) => {
-  return fetch(url)
-    .then(res => {
-      if (res.ok) {
-        return res.json().then(json => transformJson(json, page));
-      }
-      console.log(res.statusText);
-    })
-    .catch(console.log);
-};
+const fetchAndTransform = (url, page = 1) =>
+  fetch(url).then(res =>
+    res.ok
+      ? res.json().then(json => transformJson(json, page))
+      : console.log(res.statusText)
+  );
 
 // TRANSFORM
 
@@ -62,9 +59,9 @@ const templateTransform = () => ({
   closedPrimaryCount: 0
 });
 
-const reduceOpenItems = json => {
+const reduceOpenItems = results => {
   let closedPrimaryCount = 0;
-  const open = json.reduce((filtered, item) => {
+  const open = results.reduce((filtered, item) => {
     const isPrimary = checkPrimary(item.color);
     if (item.disposition === "open") {
       item.isPrimary = isPrimary;
