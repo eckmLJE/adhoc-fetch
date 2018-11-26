@@ -6,8 +6,6 @@ window.path = "http://localhost:3000/records";
 
 // Your retrieve function plus any additional functions go here ...
 
-// RETRIEVE
-
 // Setting a default empty object makes things a little easier for us
 const retrieve = (optionsObj = {}) => {
   let url = constructURL(optionsObj);
@@ -17,16 +15,13 @@ const retrieve = (optionsObj = {}) => {
 // URL + FETCH
 
 // Request 11 items to check later for nextPage
-const constructURL = optionsObj => {
-  let url = URI(window.path);
-  const searchOptions = {
+const constructURL = optionsObj =>
+  URI(window.path).search({
     limit: 11,
     offset: optionsObj.page ? (optionsObj.page - 1) * 10 : 0,
-    // url will still construct properly with undefined optionsObj.colors
+    // url will still construct with undefined optionsObj.colors
     "color[]": optionsObj.colors
-  };
-  return url.search(searchOptions);
-};
+  });
 
 const fetchAndTransform = (url, page = 1) =>
   fetch(url).then(res =>
@@ -37,20 +32,6 @@ const fetchAndTransform = (url, page = 1) =>
 
 // TRANSFORM
 
-const transformJson = (json, page) => {
-  const transformed = templateTransform();
-  if (json.length === 11) transformed.nextPage = page + 1;
-  if (page > 1) transformed.previousPage = page - 1;
-  if (json.length) {
-    const results = json.slice(0, 10);
-    const reduced = reduceOpenItems(results);
-    transformed.ids = results.map(el => el.id);
-    transformed.open = reduced.open;
-    transformed.closedPrimaryCount = reduced.closedPrimaryCount;
-  }
-  return transformed;
-};
-
 const templateTransform = () => ({
   previousPage: null,
   nextPage: null,
@@ -59,9 +40,26 @@ const templateTransform = () => ({
   closedPrimaryCount: 0
 });
 
-const reduceOpenItems = results => {
+const transformJson = (json, page) => {
+  const transformed = templateTransform();
+  if (json.length === 11) transformed.nextPage = page + 1;
+  if (page > 1) transformed.previousPage = page - 1;
+  if (json.length) {
+    const results = json.slice(0, 10);
+    const processed = processOpenItems(results);
+    Object.keys(processed).forEach(key => (transformed[key] = processed[key]));
+  }
+  return transformed;
+};
+
+// .reduce() to return ids array, filter open results, add isPrimary
+// key, and count closed primary items. It's a relatively long function,
+// but returns what we need without iterating multiple times.
+const processOpenItems = results => {
   let closedPrimaryCount = 0;
+  let ids = [];
   const open = results.reduce((filtered, item) => {
+    ids.push(item.id);
     const isPrimary = checkPrimary(item.color);
     if (item.disposition === "open") {
       item.isPrimary = isPrimary;
@@ -70,7 +68,7 @@ const reduceOpenItems = results => {
     if (item.disposition === "closed" && isPrimary) closedPrimaryCount++;
     return filtered;
   }, []);
-  return { open, closedPrimaryCount };
+  return { ids, open, closedPrimaryCount };
 };
 
 const checkPrimary = color => {
